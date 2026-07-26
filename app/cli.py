@@ -42,15 +42,25 @@ def interactive() -> None:
     show(get_pipeline().process(ticket))
 
 
+def smoke() -> None:
+    pipeline = get_pipeline()
+    happy = pipeline.process(CASES["happy"])
+    risky = pipeline.process(CASES["risky"])
+    if happy.action != "AUTO_REPLY" or risky.action != "ESCALATE":
+        raise SystemExit(f"Smoke failed: happy={happy.action}, risky={risky.action}")
+    print("Smoke OK: happy=AUTO_REPLY, risky=ESCALATE")
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Support Ticket Automation PoC")
     parser.add_argument(
         "command",
-        choices=("interactive", "demo-happy", "demo-risky"),
+        choices=("interactive", "demo-happy", "demo-risky", "smoke"),
     )
     args = parser.parse_args()
     if args.command == "interactive":
         interactive()
+    elif args.command == "smoke":
+        smoke()
     else:
         run_demo("happy" if args.command == "demo-happy" else "risky")
 
