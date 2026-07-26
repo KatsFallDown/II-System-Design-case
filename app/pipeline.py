@@ -48,6 +48,8 @@ class TicketPipeline:
                 missing_information=[], reason="LLM failure.",
             )
         trace.append(f"Decision={action}, reason={reason}")
+        if action == Action.ESCALATE and analysis.recommended_action != Action.ESCALATE:
+            analysis.user_message = "We are forwarding this request to a support specialist."
         support_ticket = None
         if action == Action.ESCALATE:
             support_ticket = SupportTicket(
