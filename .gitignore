@@ -1,0 +1,7 @@
+my_own_tests/
+.venv/
+__pycache__/
+*.py[cod]
+artifacts/*.joblib
+artifacts/metrics.json
+dataset-tickets-*.csv
