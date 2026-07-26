@@ -1,0 +1,90 @@
+name: support-ticket-poc
+
+services:
+  app:
+    build: .
+    ports:
+      - "8003:8003"
+    environment:
+      DATASET_PATH: /data/tickets.csv
+      ARTIFACTS_DIR: /artifacts
+      LLM_MODE: ${LLM_MODE:-mock}
+      LLAMA_BASE_URL: ${LLAMA_BASE_URL:-http://llama-cpu:8080}
+      LLAMA_MODEL: ${LLAMA_MODEL:-Qwen3.5-4B-Q8_0.gguf}
+      LLAMA_TIMEOUT_SECONDS: ${LLAMA_TIMEOUT_SECONDS:-45}
+      CATEGORY_CONFIDENCE_THRESHOLD: ${CATEGORY_CONFIDENCE_THRESHOLD:-0.65}
+      RISK_CONFIDENCE_THRESHOLD: ${RISK_CONFIDENCE_THRESHOLD:-0.60}
+      RETRIEVAL_SIMILARITY_THRESHOLD: ${RETRIEVAL_SIMILARITY_THRESHOLD:-0.25}
+    volumes:
+      - ${DATASET_PATH:-./dataset-tickets-multi-lang-4-20k.csv}:/data/tickets.csv:ro
+      - ./artifacts:/artifacts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  llama-cpu:
+    profiles: ["cpu"]
+    image: ghcr.io/ggml-org/llama.cpp:server
+    ports:
+      - "8004:8080"
+    volumes:
+      - ${LLAMA_MODELS_DIR:-./models}:/models:ro
+    command:
+      - --model
+      - /models/${LLAMA_MODEL_FILE:-Qwen3.5-4B-Q8_0.gguf}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --jinja
+      - --ctx-size
+      - ${LLAMA_CTX_SIZE:-4096}
+      - --threads
+      - ${LLAMA_THREADS:-8}
+      - --n-gpu-layers
+      - "0"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  llama-gpu:
+    profiles: ["gpu"]
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    ports:
+      - "8004:8080"
+    volumes:
+      - ${LLAMA_MODELS_DIR:-./models}:/models:ro
+    command:
+      - --model
+      - /models/${LLAMA_MODEL_FILE:-Qwen3.5-4B-Q8_0.gguf}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --jinja
+      - --ctx-size
+      - ${LLAMA_CTX_SIZE:-4096}
+      - --n-gpu-layers
+      - ${LLAMA_GPU_LAYERS:-99}
+      - --split-mode
+      - ${LLAMA_SPLIT_MODE:-layer}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s

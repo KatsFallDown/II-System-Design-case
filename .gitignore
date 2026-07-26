@@ -4,4 +4,4 @@ __pycache__/
 *.py[cod]
 artifacts/*.joblib
 artifacts/metrics.json
-dataset-tickets-*.csv
+models/*.gguf

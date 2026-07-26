@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 
 from app.config import Settings
+from app.llm.health import get_llm_health
 from app.presentation import api_payload
 from app.runtime import get_pipeline
 from app.schemas import TicketInput
@@ -14,13 +15,15 @@ app = FastAPI(title="Support Ticket Automation PoC", version="0.2.0")
 @app.get("/health")
 def health() -> dict:
     settings = Settings()
+    llm_health = get_llm_health()
     artifacts = {
         "category": (settings.artifacts_dir / "category.joblib").exists(),
         "risk": (settings.artifacts_dir / "risk.joblib").exists(),
     }
     return {
         "status": "ok" if settings.dataset_path.exists() and all(artifacts.values()) else "degraded",
-        "llm_mode": "mock",
+        "llm_mode": llm_health["mode"],
+        "llm_available": llm_health["available"],
         "dataset_available": settings.dataset_path.exists(),
         "models": artifacts,
     }

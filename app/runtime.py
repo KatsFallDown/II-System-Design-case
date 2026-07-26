@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 from app.config import Settings
-from app.llm.mock import MockLLMAdapter
+from app.llm.factory import create_llm_adapter
 from app.ml.retrieval import TicketRetriever
 from app.ml.train import load_or_train
 from app.pipeline import TicketPipeline
@@ -16,5 +16,5 @@ def get_pipeline() -> TicketPipeline:
         category,
         risk,
         TicketRetriever(frame),
-        MockLLMAdapter(),
+        create_llm_adapter(),
     )
